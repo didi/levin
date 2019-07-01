@@ -6,9 +6,10 @@ Description
 -------
 
 Levin provide a highly efficient solution in bulk loading scene.
-which implement customized containers arrange memory layout SEQUENTIALLY.
-Levin containers allocated at share memory region for shared inter-process.
-which SHOULD be used as static data, NOT suggest to modify or reallocate them.
+A collection of STL-like containers implemented with high performance and memory efficiency.
+Levin containers arrange memory layout SEQUENTIALLY, allocated at share memory region for reused inter-process.
+which prolongs the lifetime of data resources, and prevents unnecessary time-consuming reload.
+Loading with levin speed, you deserve it.
 
 
 Getting Started
@@ -44,6 +45,8 @@ levin::SharedHashMap<int64_t, int32_t>::Dump("./map_demo.dat", map_data);
 
 
 * How to Use Container
+
+Tips: Levin container SHOULD be used as static data, NOT suggest to modify or reallocate.
 
 ```c++
 // shared vector use demo
