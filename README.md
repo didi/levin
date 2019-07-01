@@ -5,8 +5,9 @@ Levin - A Quick Way to Bulk Loading
 Description
 -------
 
-levin customized container arrange memory layout SEQUENTIALLY.
-which always allocated at shm/mmap region for shared inter-process.
+Levin provide a highly efficient solution in bulk loading scene.
+which implement customized containers arrange memory layout SEQUENTIALLY.
+Levin containers allocated at share memory region for shared inter-process.
 which SHOULD be used as static data, NOT suggest to modify or reallocate them.
 
 
@@ -100,3 +101,18 @@ Compile
 
 * create directory build, cd build
 * compile: cmake .. && make
+
+Documentation
+-------
+
+About the details, please see [Wiki](../../wiki).
+
+Contributing
+-------
+
+Welcome to contribute by creating issues or sending pull requests. See [Contributing Guide](CONTRIBUTING.md) for guidelines.
+
+License
+-------
+
+Levin is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file.
