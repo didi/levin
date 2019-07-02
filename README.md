@@ -9,7 +9,8 @@ Levin provide a highly efficient solution in bulk loading scene.
 A collection of STL-like containers implemented with high performance and memory efficiency.
 Levin containers arrange memory layout SEQUENTIALLY, allocated at share memory region for reused inter-process.
 which prolongs the lifetime of data resources, and prevents unnecessary time-consuming reload.
-Loading with levin speed, you deserve it.
+
+Loading with levin speed, let's go ahead.
 
 
 Getting Started
