@@ -10,7 +10,7 @@ A collection of STL-like containers implemented with high performance and memory
 Levin containers arrange memory layout SEQUENTIALLY, allocated at share memory region for reused inter-process.
 which prolongs the lifetime of data resources, and prevents unnecessary time-consuming reload.
 
-Loading with levin speed, let's go ahead.
+Loading with levin speed, let's get started.
 
 
 Getting Started
@@ -71,22 +71,7 @@ delete map_ptr;
 
 * How to Manage a set of Containers
 
-```c++
-std::shared_ptr<levin::SharedVector<int> > ids_vec_ptr;
-std::shared_ptr<levin::SharedContainerManager> share_memory_manager_ptr;
-
-std::string path("./vec_demo.dat");
-const auto &ret = share_memory_manager_ptr->Register(path, ids_vec_ptr);
-if (levin::SC_RET_OK != ret) {
-   return;
-}
-
-// do something
-//ids_vec_ptr->size();
-//int id = ids_vec_ptr[0];
-
-share_memory_manager_ptr->Release();
-```
+[example code](example/shared_manager_demo.cpp) of container manager usage
 
 
 Dependencies

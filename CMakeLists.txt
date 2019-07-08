@@ -50,3 +50,4 @@ install(FILES ${LEVIN_LIB_HEADERS} DESTINATION ${PROJECT_DIR}/output/include)
 install(FILES ${LEVIN_LIB_HEADERS_DETAILS} DESTINATION ${PROJECT_DIR}/output/include/details)
 
 add_subdirectory(test)
+add_subdirectory(example)
