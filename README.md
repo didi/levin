@@ -101,6 +101,11 @@ Contributing
 
 Welcome to contribute by creating issues or sending pull requests. See [Contributing Guide](CONTRIBUTING.md) for guidelines.
 
+Communication
+-------
+
+![QQ](images/QQ.JPG)
+
 License
 -------
 
