@@ -13,6 +13,7 @@ boost::shared_ptr<boost::thread> SharedContainerManager::_clear_process = nullpt
 boost::shared_mutex SharedContainerManager::_wr_lock_global;
 boost::shared_mutex SharedContainerManager::_wr_lock_container_init;
 
+
 static SharedManagerGuard shared_manager_enter_exit_hook;
 
 SharedManagerGuard::SharedManagerGuard() {
@@ -165,8 +166,14 @@ void SharedContainerManager::VerifyFileProcess(std::map<std::string, std::string
             }
             continue;
         } else {
-            boost::mutex::scoped_lock lock(cmutex);
-            check_md5_list_result[file_idx] = true;
+            {
+                boost::mutex::scoped_lock lock(cmutex);
+                check_md5_list_result[file_idx] = true;
+            }
+            {
+                boost_unique_lock lock(_wr_lock_global);
+                _has_checked_file_list.insert(list_file_name);
+            }
         }
     }
 }
@@ -312,16 +319,22 @@ int SharedContainerManager::ClearUnregistered(const int app_id) {
 }
 
 int SharedContainerManager::VerifyOneFile(const std::string &file_path) {
-    boost_share_lock lock(_wr_lock_global);
-    if (_has_checked_file_list.find(file_path) != _has_checked_file_list.end()) {
-        return SC_RET_OK;
+    VerifyFileFuncPtr func;
+    std::string check_msg;
+    {
+        boost_share_lock lock(_wr_lock_global);
+        if (_has_checked_file_list.find(file_path) != _has_checked_file_list.end()) {
+            return SC_RET_OK;
+        }
+        if (_file_check_map.find(file_path) == _file_check_map.end()) {
+            return SC_RET_OK;
+        }
+        func = _file_check_map[file_path].second;
+        check_msg = _file_check_map[file_path].first;
     }
-    if (_file_check_map.find(file_path) == _file_check_map.end()) {
-        return SC_RET_OK;
-    }
-
-    VerifyFileFuncPtr func = _file_check_map[file_path].second;
-    if (func(file_path, _file_check_map[file_path].first)) {
+    if (func(file_path, check_msg)) {
+        boost_unique_lock lock(_wr_lock_global);
+        _has_checked_file_list.insert(file_path);
         return SC_RET_OK;
     } else {
         LEVIN_CWARNING_LOG("verify failed, file path=[%s]", file_path.c_str());

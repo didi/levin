@@ -43,6 +43,7 @@ bool CheckFileMD5(const std::string file_path, const std::string verify_data) {
         return false;
     }
     if (md5 == verify_data) {
+        LEVIN_CINFO_LOG("check file md5 success, file path=[%s]", file_path.c_str());
         return true;
     } else {
         LEVIN_CWARNING_LOG(
