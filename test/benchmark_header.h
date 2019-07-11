@@ -22,7 +22,7 @@ typedef std::pair<const int64_t, int32_t> Int64Int32Pair;
 typedef boost::interprocess::allocator<Int64Int32Pair, managed_xsi_shared_memory::segment_manager> Int64Int32MapAllocator;
 typedef boost::interprocess::map<int64_t, int32_t, std::less<int64_t>, Int64Int32MapAllocator> Int64Int32Map;
 
-// @brief timer class (steal from its-lib)
+// @brief timer class
 class Timer {
 public:
     Timer() {
