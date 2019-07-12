@@ -189,7 +189,7 @@ int SharedContainerManager::VerifyFiles(const std::map<std::string, std::string>
             ret = GetAbsolutePath(ptr->first, absolute_path);
             CHECK_RET(ret);
             
-            _has_checked_file_list.erase(ptr->first);   //可能重复加载同一份数据
+            _has_checked_file_list.erase(ptr->first); 
             std::pair<std::string, VerifyFileFuncPtr> value(ptr->second, check_func);
             _file_check_map[absolute_path] = value;
             diff_list[absolute_path] = ptr->second;
