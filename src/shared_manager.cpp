@@ -2,6 +2,7 @@
 #include "shared_manager.h"
 #include "boost/make_shared.hpp"
 #include <boost/thread/thread.hpp>
+#include <limits.h>
 
 namespace levin {
 
@@ -12,7 +13,6 @@ bool SharedContainerManager::_clear_process_run = false;
 boost::shared_ptr<boost::thread> SharedContainerManager::_clear_process = nullptr;
 boost::shared_mutex SharedContainerManager::_wr_lock_global;
 boost::shared_mutex SharedContainerManager::_wr_lock_container_init;
-
 
 static SharedManagerGuard shared_manager_enter_exit_hook;
 
@@ -56,14 +56,13 @@ int SharedContainerManager::GetAbsolutePath(const std::string &file_path, std::s
                 absolute_path.c_str());
         return SC_RET_OK;
     } else {
-        char current_absolute_path[1024];
-        if (NULL == realpath(file_path.c_str(), current_absolute_path)) {
-            LEVIN_CWARNING_LOG(
-                    "Get absolute path err, file_path=[%s], maybe file does't exist",
-                    file_path.c_str());
-            return SC_RET_FILE_NOEXIST;
+        char tmp_path[PATH_MAX] = {0};
+        if (realpath(".", tmp_path) == nullptr) {
+            LEVIN_CWARNING_LOG("Get current path err, check path permission");
+            return SC_RET_ERR_SYS;
         }
-        absolute_path = current_absolute_path;
+        std::string current_absolute_path = tmp_path;
+        absolute_path = current_absolute_path + "/" + file_path;
         LEVIN_CDEBUG_LOG(
                 "Get absolute path success, original path=[%s] absolute path=[%s]",
                 file_path.c_str(),
@@ -390,5 +389,4 @@ void SharedContainerManager::StopClearProcess() {
 }
 
 }  // namespace levin
-
 

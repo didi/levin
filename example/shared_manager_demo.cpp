@@ -21,24 +21,37 @@ using namespace levin;
 
 #define GROUP_ID            "test_group_id"
 #define APP_ID              1
-#define VEC_DATA_PATH       "./data/test_vec"
-#define MAP_DATA_PATH       "./data/test_map"
+#define VEC_DATA_PATH       "./test_vec"
+#define MAP_DATA_PATH       "./test_map"
 #define VEC_DATA_CHECK_MSG  "vec_file_md5"
 #define MAP_DATA_CHECK_MSG  "map_file_md5"
 
 
 bool mock_check_func(const std::string file_path, const std::string verify_msg) {
-    if (file_path == VEC_DATA_PATH && verify_msg == VEC_DATA_CHECK_MSG) {
-        return true;
-    }
-    if (file_path == MAP_DATA_PATH && verify_msg == MAP_DATA_CHECK_MSG) {
+    if (verify_msg == MAP_DATA_CHECK_MSG || verify_msg == VEC_DATA_CHECK_MSG) {
         return true;
     }
     return false;
 }
 
+bool dump_test_data() {
+    std::vector<int> test_vec = {1, 2, 3, 4, 5};
+    if(!SharedVector<int>::Dump(VEC_DATA_PATH, test_vec)) {
+        return false;
+    }
+    std::map<int, int> test_map = {{1,10}, {2,20}, {3,30}};
+    if(!SharedMap<int, int>::Dump(MAP_DATA_PATH, test_map)) {
+        return false;
+    }
+    return true;
+}
+
 int main() {
     int ret;
+
+    if (!dump_test_data()) {
+        return -1;
+    }
 
     // (optional) three methods can be used to clear shared containers
     // which exist but not be using（release shared memory）
@@ -97,8 +110,9 @@ int main() {
     map_ptr->find(0);
     // ...
 
-    // (optional) release all shared containers in certain group by call the 'Release' interface when 
-    // these shared containers are not needed anymore
+    // (optional) release all shared containers in certain group when these shared containers are not needed anymore.
+    // Attention: shared containers won't be destroyed immediately. levin scans and destroys containers once per second,
+    //            and container won't be destroyed if it still being used
     manager_ptr->Release();
  
     return 0;
