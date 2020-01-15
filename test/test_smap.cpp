@@ -13,7 +13,7 @@ protected:
     }
     virtual void TearDown() {
     }
-    const size_t fixed_len = SharedAllocator::Allocsize(sizeof(SharedMeta));
+    const size_t fixed_len = SharedBase::MetaSize() + SharedBase::HeaderSize();
 };
 
 const size_t count = 10;

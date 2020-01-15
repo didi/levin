@@ -11,11 +11,14 @@ namespace levin {
 template <class Key,
           class Value,
           class Compare = std::less<Key>,
+          class Mem = levin::SharedMemory,
           class CheckFunc = levin::IntegrityChecker>
 class SharedMap : public SharedBase {
 public:
-    typedef Map<Key, Value, Compare>                container_type;
+    typedef Map<Key, Value, Compare, std::size_t>   container_type;
     typedef typename container_type::impl_type      impl_type;
+    typedef typename container_type::key_type       key_type;
+    typedef typename container_type::mapped_type    mapped_type;
     typedef typename container_type::value_type     value_type;
     typedef typename container_type::iterator       iterator;
     typedef typename container_type::const_iterator const_iterator;
@@ -26,20 +29,22 @@ public:
     }
 
     virtual int Init() override {
-        return _init<container_type>(_object);
+        return _init<container_type, Mem>(_object);
     }
 
     virtual int Load() override {
         return _load<container_type>(_object);
     }
 
-    virtual bool Dump(const std::string &file) override;
+    virtual bool Export(const std::string &file) override;
     static bool Dump(const std::string &file, const std::map<Key, Value, Compare> &map);
 
     bool empty() const { return _object->empty(); }
     size_t size() const { return _object->size(); }
     iterator begin() { return _object->begin(); }
     iterator end() { return _object->end(); }
+    const_iterator begin() const { return _object->begin(); }
+    const_iterator end() const { return _object->end(); }
     const_iterator cbegin() const { return _object->cbegin(); }
     const_iterator cend() const { return _object->cend(); }
 
@@ -60,6 +65,9 @@ public:
         if (_info->_meta != nullptr) {
             ss << std::endl << *_info->_meta;
         }
+        if (_info->_header != nullptr) {
+            ss << std::endl << *_info->_header;
+        }
         if (_object != nullptr) {
             ss << std::endl << _object->layout();
         }
@@ -76,13 +84,13 @@ private:
     container_type *_object = nullptr;
 };
 
-template <class Key, class Value, class Compare, class CheckFunc>
-bool SharedMap<Key, Value, Compare, CheckFunc>::Dump(const std::string &file) {
+template <class Key, class Value, class Compare, class Mem, class CheckFunc>
+bool SharedMap<Key, Value, Compare, Mem, CheckFunc>::Export(const std::string &file) {
     return _bin2file(file, container_memsize(this->_object), _object);
 }
 
-template <class Key, class Value, class Compare, class CheckFunc>
-bool SharedMap<Key, Value, Compare, CheckFunc>::Dump(
+template <class Key, class Value, class Compare, class Mem, class CheckFunc>
+bool SharedMap<Key, Value, Compare, Mem, CheckFunc>::Dump(
         const std::string &file, const std::map<Key, Value, Compare> &mp) {
     std::vector<value_type> vec(mp.cbegin(), mp.cend());
     return SharedVector<value_type>::Dump(file, vec, typeid(container_type).hash_code());

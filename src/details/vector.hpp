@@ -96,7 +96,7 @@ public:
     bool operator ==(const CustomVector<T, SizeType> &other) const;
     bool operator !=(const CustomVector<T, SizeType> &other) const { return !(*this == other); }
 
-    template <class X, class Y> friend class SharedVector;
+    template <class X, class Y, class Z> friend class SharedVector;
 
 private:
     T *_array() const { return (T*)((std::size_t)this + _arr_offset); }
@@ -280,12 +280,10 @@ inline size_t container_memsize(const CustomVector<CustomVector<T, SizeType> > *
     return (object->empty() ? sizeof(*object) : (size_t)object->back().cend() - (size_t)object);
 };
 
-template <class T, class SizeType>
-inline std::string container_layout(const CustomVector<CustomVector<T, SizeType> > *object) {
-    std::stringstream ss;
-    ss << "Nested CustomVector this=[" << (void*)object << "]";
-
+template <class ContainerType>
+inline std::string nested_container_layout(const CustomVector<ContainerType> *object) {
     static size_t LAYOUT_MAX_ROW_COUNT = 3;
+    std::stringstream ss;
     if (object != nullptr) {
         ss << std::endl << object->layout();
         // truncate while too long
@@ -302,6 +300,14 @@ inline std::string container_layout(const CustomVector<CustomVector<T, SizeType>
             ss << std::endl << last_one->layout();
         }
     }
+    return ss.str();
+}
+
+template <class T, class SizeType>
+inline std::string container_layout(const CustomVector<CustomVector<T, SizeType> > *object) {
+    std::stringstream ss;
+    ss << "Nested CustomVector this=[" << (void*)object << "]"
+       << nested_container_layout<CustomVector<T, SizeType> >(object);
     return ss.str();
 }
 

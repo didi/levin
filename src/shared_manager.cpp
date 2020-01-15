@@ -2,7 +2,6 @@
 #include "shared_manager.h"
 #include "boost/make_shared.hpp"
 #include <boost/thread/thread.hpp>
-#include <limits.h>
 
 namespace levin {
 
@@ -13,6 +12,7 @@ bool SharedContainerManager::_clear_process_run = false;
 boost::shared_ptr<boost::thread> SharedContainerManager::_clear_process = nullptr;
 boost::shared_mutex SharedContainerManager::_wr_lock_global;
 boost::shared_mutex SharedContainerManager::_wr_lock_container_init;
+
 
 static SharedManagerGuard shared_manager_enter_exit_hook;
 
@@ -57,12 +57,16 @@ int SharedContainerManager::GetAbsolutePath(const std::string &file_path, std::s
         return SC_RET_OK;
     } else {
         char tmp_path[PATH_MAX] = {0};
-        if (realpath(".", tmp_path) == nullptr) {
+        if (NULL == realpath(".", tmp_path)) {
             LEVIN_CWARNING_LOG("Get current path err, check path permission");
             return SC_RET_ERR_SYS;
         }
         std::string current_absolute_path = tmp_path;
-        absolute_path = current_absolute_path + "/" + file_path;
+        if (file_path.substr(0, 2) == "./") {
+            absolute_path = current_absolute_path + file_path.substr(1);
+        } else {
+            absolute_path = current_absolute_path + "/" + file_path;
+        }
         LEVIN_CDEBUG_LOG(
                 "Get absolute path success, original path=[%s] absolute path=[%s]",
                 file_path.c_str(),
@@ -187,8 +191,8 @@ int SharedContainerManager::VerifyFiles(const std::map<std::string, std::string>
             std::string absolute_path;
             ret = GetAbsolutePath(ptr->first, absolute_path);
             CHECK_RET(ret);
-            
-            _has_checked_file_list.erase(ptr->first); 
+            // maybe load the same file duplicately
+            _has_checked_file_list.erase(ptr->first);
             std::pair<std::string, VerifyFileFuncPtr> value(ptr->second, check_func);
             _file_check_map[absolute_path] = value;
             diff_list[absolute_path] = ptr->second;
@@ -389,4 +393,5 @@ void SharedContainerManager::StopClearProcess() {
 }
 
 }  // namespace levin
+
 

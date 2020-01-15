@@ -4,7 +4,7 @@
 #include <boost/scoped_ptr.hpp>
 #include "shared_utils.h"
 #include "shared_allocator.h"
-#include "xsi_shm.hpp"
+#include "shared_memory.hpp"
 
 namespace levin {
 
@@ -12,16 +12,23 @@ struct ContainerInfo {
     std::string _name;
     std::string _group;
     int _appid;
-    CheckFunctor _checkfunc;
-    boost::scoped_ptr<levin::SharedMemory> _shm;
+    CheckFunctor _checkfunc;    // shm region check func
+    boost::scoped_ptr<levin::MemoryBase> _mem;
     boost::scoped_ptr<levin::SharedAllocator> _alloc;
-    SharedMeta *_meta;  // which located at shm region, use raw pointer
+    SharedMeta *_meta;          // which maybe located at shm region, use raw pointer
+    SharedFileHeader *_header;  // which maybe located at shm region, use raw pointer
     bool _is_exist = false;
 
-    ContainerInfo() : _name(""), _appid(0), _meta(nullptr), _is_exist(false) {
+    ContainerInfo() : _name(""), _appid(0), _meta(nullptr), _header(nullptr), _is_exist(false) {
     }
-    ContainerInfo(const std::string &name, const std::string &group, const int id, CheckFunctor check) :
-            _name(name), _group(group), _appid(id), _checkfunc(check), _meta(nullptr), _is_exist(false) {
+    ContainerInfo(const std::string &name, const std::string &group, const int id, CheckFunctor fn) :
+            _name(name),
+            _group(group),
+            _appid(id),
+            _checkfunc(fn),
+            _meta(nullptr),
+            _header(nullptr),
+            _is_exist(false) {
     }
 };
 
@@ -33,8 +40,6 @@ public:
     // cause there are dependency relationship between them
     static const uint8_t SC_VERSION = 2;
 
-    SharedBase() : _info(nullptr) {
-    }
     SharedBase(
             const std::string &name,
             const std::string &group,
@@ -47,7 +52,7 @@ public:
 
     virtual int Init() = 0;
     virtual int Load() = 0;
-    virtual bool Dump(const std::string &file) = 0;
+    virtual bool Export(const std::string &file) = 0;
 
     bool IsExist() const {
         return _info->_is_exist;
@@ -55,15 +60,17 @@ public:
 
     void Destroy() {
         _info->_meta = nullptr;
-        _info->_shm->remove_shared_memory();
+        if (_info->_mem.get() != nullptr) {
+            _info->_mem->remove();
+        }
     }
 
 protected:
-    template <typename Container>
+    template <typename Container, typename Mem = levin::SharedMemory>
     int _init(Container *&ptr);
 
     template <typename Container>
-    bool _check(const Container *ptr, bool is_upd);
+    bool _check(const Container *ptr, bool is_upd = false);
 
     template <typename Container>
     int _load(Container *&ptr);
@@ -74,35 +81,45 @@ protected:
     template <typename Container>
     bool _bin2file(const std::string &file, const size_t container_size, const Container *ptr);
 
+    static size_t HeaderSize() {
+        return SharedAllocator::Allocsize(sizeof(SharedFileHeader));
+    }
+    static size_t MetaSize() {
+        return SharedAllocator::Allocsize(sizeof(SharedMeta));
+    }
+
 protected:
     boost::scoped_ptr<ContainerInfo> _info;
 };
 
-template <typename Container>
+template <typename Container, typename Mem>
 int SharedBase::_init(Container *&ptr) {
-    _info->_shm.reset(new levin::SharedMemory(_info->_name, _info->_appid));
-    if (_info->_shm.get() == nullptr) {
+    _info->_mem.reset(new Mem(_info->_name, _info->_appid));
+    if (_info->_mem.get() == nullptr) {
         LEVIN_CWARNING_LOG("new SharedMemory failed. name=%s", _info->_name.c_str());
         return SC_RET_OOM;
     }
-    int ret = _info->_shm->init(SharedAllocator::Allocsize(sizeof(SharedMeta)));
+    int ret = _info->_mem->init(MetaSize() + HeaderSize());
     if (ret != SC_RET_OK) {
+        _info->_mem.reset();
+        LEVIN_CWARNING_LOG("SharedMemory init failed. name=%s, ret=%d", _info->_name.c_str(), ret);
         return ret;
     }
     _info->_alloc.reset(
-            new levin::SharedAllocator(_info->_shm->get_address(), _info->_shm->get_size()));
+            new levin::SharedAllocator(_info->_mem->get_address(), _info->_mem->get_size()));
     if (_info->_alloc.get() == nullptr) {
         LEVIN_CWARNING_LOG("new SharedAllocator failed. name=%s", _info->_name.c_str());
         return SC_RET_OOM;
     }
     try {
-        if (_info->_shm->is_exist()) {
+        if (_info->_mem->is_exist()) {
             _info->_meta = _info->_alloc->template Address<SharedMeta>();
+            _info->_header = _info->_alloc->template Address<SharedFileHeader>();
             ptr = _info->_alloc->template Address<Container>();
             if (_check(ptr)) {
                 _info->_is_exist = true;
-                LEVIN_CINFO_LOG("shm already exist. name=%s, shmid=%d, bytes=%ld",
-                        _info->_name.c_str(), _info->_shm->get_shmid(), _info->_shm->get_size());
+                LEVIN_CINFO_LOG("shm already exist. name=%s, info=%s",
+                        _info->_name.c_str(), _info->_mem->info().c_str());
                 return SC_RET_OK;
             }
             LEVIN_CWARNING_LOG("shm already exist but check fail. name=%s\n%s",
@@ -114,6 +131,7 @@ int SharedBase::_init(Container *&ptr) {
         _info->_meta = _info->_alloc->template Construct<SharedMeta>(
                 _info->_name.c_str(), typeid(Container).name(), _info->_group.c_str(), _info->_appid,
                 typeid(Container).hash_code(), makeFlags(SC_VERSION));
+        _info->_header = _info->_alloc->template Construct<SharedFileHeader>();
         ptr = _info->_alloc->template Construct<Container>();
     } catch (std::exception &e) {
         LEVIN_CWARNING_LOG("alloc failed, remove shm. what=%s, name=%s",
@@ -122,13 +140,13 @@ int SharedBase::_init(Container *&ptr) {
         Destroy();
         return SC_RET_ALLOC_FAIL;
     }
-    LEVIN_CDEBUG_LOG("construct meta&ptr mem used=%ld, _meta=%p, ptr=%p",
-            _info->_alloc->used_size(), (void*)_info->_meta, ptr);
+    LEVIN_CDEBUG_LOG("construct container mem used=%ld, _meta=%p, _header=%p, ptr=%p",
+            _info->_alloc->used_size(), (void*)_info->_meta, (void*)_info->_header, ptr);
     return SC_RET_OK;
 }
 
 template <typename Container>
-bool SharedBase::_check(const Container *ptr, bool is_upd = false) {
+bool SharedBase::_check(const Container *ptr, bool is_upd) {
     if (typeid(Container).hash_code() != _info->_meta->hashcode) {
         LEVIN_CWARNING_LOG("checked summary hash failed. %s NOT matches %s",
                 demangle(typeid(Container).name()).c_str(), _info->_meta->summary);
@@ -140,10 +158,9 @@ bool SharedBase::_check(const Container *ptr, bool is_upd = false) {
         return false;
     }
 
-    SharedChecksumInfo info((void*)ptr, container_memsize(ptr));
-    size_t fixed_len = SharedAllocator::Allocsize(sizeof(SharedMeta));
+    SharedChecksumInfo info((void*)_info->_header, container_memsize(ptr) + HeaderSize());
     if (_info->_alloc->OutOfRange(
-                (void*)((size_t)info.area - fixed_len), info.length + fixed_len)) {
+                (void*)((size_t)info.area - MetaSize()), info.length + MetaSize())) {
         LEVIN_CWARNING_LOG("checked region out of range.");
         return false;
     }
@@ -156,7 +173,7 @@ int SharedBase::_load(Container *&ptr) {
         LEVIN_CDEBUG_LOG("no need load, use exist shm directly. name=%s", _info->_name.c_str());
         return SC_RET_OK;
     }
-    if (ptr == nullptr || !_file2bin(_info->_name, ptr)) {
+    if (_info->_header == nullptr || ptr == nullptr || !_file2bin(_info->_name, ptr)) {
         LEVIN_CWARNING_LOG("load failed, remove shm. name=%s", _info->_name.c_str());
         ptr = nullptr;
         Destroy();
@@ -170,8 +187,8 @@ int SharedBase::_load(Container *&ptr) {
         Destroy();
         return SC_RET_CHECK_FAIL;
     }
-    LEVIN_CINFO_LOG("file load succ. name=%s, shmid=%d, bytes=%ld",
-            _info->_name.c_str(), _info->_shm->get_shmid(), _info->_shm->get_size());
+    LEVIN_CINFO_LOG("file load succ. name=%s, info=%s",
+            _info->_name.c_str(), _info->_mem->info().c_str());
     return SC_RET_OK;
 }
 
@@ -183,14 +200,13 @@ bool SharedBase::_file2bin(const std::string &file, Container *&ptr) {
         return false;
     }
     // read file header: used memory size/container type hashcode
-    SharedFileHeader header;
-    fin.read((char*)&header, sizeof(header));
+    fin.read((char*)_info->_header, sizeof(SharedFileHeader));
     if (!fin) {
         LEVIN_CWARNING_LOG("read file fail. file=%s", file.c_str());
         return false;
     }
     // validate expected container type hashcode
-    if (typeid(Container).hash_code() != header.type_hash) {
+    if (typeid(Container).hash_code() != _info->_header->type_hash) {
         LEVIN_CWARNING_LOG("validate typeid hash in file failed. file=%s, T=%s",
                 file.c_str(), demangle(typeid(Container).name()).c_str());
         return false;
@@ -201,8 +217,13 @@ bool SharedBase::_file2bin(const std::string &file, Container *&ptr) {
     //    return false;
     //}
 
+    // validate container bin within the memory range, avoid overlap
+    size_t container_size = _info->_header->container_size;
+    if (_info->_alloc->OutOfRange((void*)((size_t)ptr + container_size))) {
+        LEVIN_CWARNING_LOG("file bin maybe out of region, read file fail. file=%s", file.c_str());
+        return false;
+    }
     // read container bin
-    size_t container_size = header.container_size;
     fin.read((char*)ptr, container_size);
     if (!fin) {
         LEVIN_CWARNING_LOG("read file fail. file=%s", file.c_str());
@@ -224,9 +245,11 @@ bool SharedBase::_bin2file(
     }
 
     // write file header: used memory size/container type hash
-    size_t type_hash = typeid(Container).hash_code();
-    SharedFileHeader header = {container_size, type_hash, makeFlags(SC_VERSION)};
-    fout.write((const char*)&header, sizeof(header));
+    if (container_size != _info->_header->container_size) {
+        LEVIN_CWARNING_LOG("container data maybe falsified, bin2file fail. file=%s", file.c_str());
+        return false;
+    }
+    fout.write((const char*)_info->_header, sizeof(SharedFileHeader));
     if (!fout) {
         LEVIN_CWARNING_LOG("write file fail. file=%s", file.c_str());
         return false;

@@ -34,7 +34,7 @@ TEST_F(SharedSetTest, test_static_Dump_Load_empty) {
     }
     // load
     {
-        levin::SharedSet<int, std::less<int>, levin::IntegrityChecker> st(name);
+        levin::SharedSet<int, std::less<int>, SharedMemory, IntegrityChecker> st(name);
         EXPECT_EQ(st.Init(), SC_RET_OK);
         EXPECT_EQ(st.Load(), SC_RET_OK);
         // range-based traversal
@@ -92,7 +92,7 @@ TEST_F(SharedSetTest, test_Load) {
     }
     // SharedSet in heap
     {
-        auto st_ptr = new levin::SharedSet<int, std::less<int>, levin::Md5Checker>(name);
+        auto st_ptr = new levin::SharedSet<int, std::less<int>, SharedMemory, Md5Checker>(name);
         EXPECT_EQ(st_ptr->Init(), SC_RET_OK);
         EXPECT_EQ(st_ptr->Load(), SC_RET_OK);
         LEVIN_CDEBUG_LOG("%s", st_ptr->layout().c_str());

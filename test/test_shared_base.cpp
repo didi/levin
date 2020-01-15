@@ -117,7 +117,7 @@ TEST_F(SharedBaseTest, test__load) {
     }
     // no exist, _load ret succ and update meta checkinfo
     {
-        levin::SharedVector<int, levin::Md5Checker> vec(name);
+        levin::SharedVector<int, levin::SharedMemory, levin::Md5Checker> vec(name);
         EXPECT_EQ(vec._init(vec._object), SC_RET_OK);
         EXPECT_EQ(vec._load(vec._object), SC_RET_OK);
         EXPECT_STRNE(vec._info->_meta->checksum, "");
@@ -128,7 +128,7 @@ TEST_F(SharedBaseTest, test__load) {
 TEST_F(SharedBaseTest, test__check) {
     // create an exist one
     {
-        levin::SharedVector<int, levin::IntegrityChecker> vec(name);
+        levin::SharedVector<int> vec(name);
         if (vec.Init() != SC_RET_OK || (!vec.IsExist() && vec.Load() != SC_RET_OK)) {
             return;
         }
@@ -136,7 +136,7 @@ TEST_F(SharedBaseTest, test__check) {
     }
     // type hash not match, check fail, re construct
     {
-        levin::SharedVector<uint64_t, levin::IntegrityChecker> vec(name);
+        levin::SharedVector<uint64_t, levin::SharedMemory, levin::IntegrityChecker> vec(name);
         EXPECT_EQ(vec._init(vec._object), SC_RET_OK);
         vec.Destroy();
     }
@@ -144,7 +144,7 @@ TEST_F(SharedBaseTest, test__check) {
 
     // create an exist one
     {
-        levin::SharedVector<int, levin::IntegrityChecker> vec(name);
+        levin::SharedVector<int> vec(name);
         if (vec.Init() != SC_RET_OK || (!vec.IsExist() && vec.Load() != SC_RET_OK)) {
             return;
         }
@@ -153,7 +153,7 @@ TEST_F(SharedBaseTest, test__check) {
     }
     // md5sum check fail, re construct
     {
-        levin::SharedVector<int, levin::Md5Checker> vec(name);
+        levin::SharedVector<int, levin::SharedMemory, levin::Md5Checker> vec(name);
         EXPECT_EQ(vec._init(vec._object), SC_RET_OK);
         vec.Destroy();
     }

@@ -35,7 +35,7 @@ TEST_F(SharedTinyNestedVectorTest, test_static_Dump_Load_large_empty) {
     }
     // load
     {
-        levin::SharedNestedVector<uint64_t, size_t, levin::IntegrityChecker> vec(name);
+        levin::SharedNestedVector<uint64_t, size_t> vec(name);
         EXPECT_EQ(vec.Init(), SC_RET_OK);
         EXPECT_EQ(vec.Load(), SC_RET_OK);
         std::cout << "begin=" << vec.begin() << "\t" << vec.cbegin() << std::endl;
@@ -97,7 +97,7 @@ TEST_F(SharedTinyNestedVectorTest, test_Load_large) {
     // load succ
     {
         std::string name = "./large_nestvec.dat";
-        levin::SharedNestedVector<uint64_t, size_t, levin::Md5Checker> vec(name);
+        levin::SharedNestedVector<uint64_t, size_t, SharedMemory, Md5Checker> vec(name);
         bool succ = false;
         if (vec.Init() == SC_RET_OK && (vec.IsExist() || vec.Load() == SC_RET_OK)) {
             succ = true;
@@ -148,7 +148,7 @@ TEST_F(SharedTinyNestedVectorTest, test_Load_tiny) {
     // load succ
     {
         std::string name = "./tiny_nestvec.dat";
-        levin::SharedNestedVector<uint64_t, uint32_t, levin::Md5Checker> vec(name);
+        levin::SharedNestedVector<uint64_t, uint32_t, SharedMemory, Md5Checker> vec(name);
         bool succ = false;
         if (vec.Init() == SC_RET_OK && (vec.IsExist() || vec.Load() == SC_RET_OK)) {
             succ = true;

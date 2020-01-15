@@ -33,6 +33,14 @@ TEST_F(SharedVectorTest, test_static_Dump_Load_empty) {
         std::vector<int> in;
         EXPECT_TRUE(levin::SharedVector<int>::Dump(name, in));
     }
+    // load at heap
+    {
+        levin::SharedVector<int, HeapMemory> vec(name);
+        EXPECT_EQ(vec.Init(), SC_RET_OK);
+        EXPECT_EQ(vec.Load(), SC_RET_OK);
+        LEVIN_CDEBUG_LOG("%s", vec.layout().c_str());
+        vec.Destroy();
+    }
     // load
     {
         levin::SharedVector<int/*, levin::IntegrityChecker*/> vec(name);
@@ -64,7 +72,7 @@ TEST_F(SharedVectorTest, test_Load) {
     }
     // SharedVector in heap
     {
-        auto vec_ptr = new levin::SharedVector<int, levin::Md5Checker>(name);
+        auto vec_ptr = new levin::SharedVector<int, SharedMemory, Md5Checker>(name);
         EXPECT_EQ(vec_ptr->Init(), SC_RET_OK);
         EXPECT_EQ(vec_ptr->Load(), SC_RET_OK);
         LEVIN_CDEBUG_LOG("%s", vec_ptr->layout().c_str());
@@ -163,7 +171,7 @@ TEST_F(SharedNestedVectorTest, test_Load) {
     // load succ
     {
         std::string name = "./nestvec.dat";
-        levin::SharedNestedVector<uint64_t, size_t, levin::Md5Checker> vec(name);
+        levin::SharedNestedVector<uint64_t, size_t, SharedMemory, Md5Checker> vec(name);
         bool succ = false;
         if (vec.Init() == SC_RET_OK && (vec.IsExist() || vec.Load() == SC_RET_OK)) {
             succ = true;

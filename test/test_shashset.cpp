@@ -45,6 +45,7 @@ TEST_F(SharedHashSetTest, test_static_Dump_Load_empty) {
             int,
             std::hash<int>,
             std::equal_to<int>,
+            levin::SharedMemory,
             levin::IntegrityChecker> hset(name);
         EXPECT_EQ(hset.Init(), SC_RET_OK);
         EXPECT_EQ(hset.Load(), SC_RET_OK);
@@ -118,6 +119,7 @@ TEST_F(SharedHashSetTest, test_Load) {
             int,
             std::hash<int>,
             std::equal_to<int>,
+            levin::SharedMemory,
             levin::Md5Checker>(name);
         bool succ = false;
         if (hset->Init() == SC_RET_OK && (hset->IsExist() || hset->Load() == SC_RET_OK)) {
@@ -161,7 +163,7 @@ TEST_F(SharedHashSetTest, test_static_Dump_struct) {
 TEST_F(SharedHashSetTest, test_Load_struct) {
     std::string name = "./cat_hashset.dat";
     {
-        levin::SharedHashSet<Cat, CatHash, CatEqual, Md5Checker> st(name);
+        levin::SharedHashSet<Cat, CatHash, CatEqual, SharedMemory, Md5Checker> st(name);
         bool succ = false;
         if (st.Init() == SC_RET_OK && (st.IsExist() || st.Load() == SC_RET_OK)) {
             succ = true;

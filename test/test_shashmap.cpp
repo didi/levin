@@ -14,7 +14,7 @@ protected:
     }
     virtual void TearDown() {
     }
-    const size_t fixed_len = SharedAllocator::Allocsize(sizeof(SharedMeta));
+    const size_t fixed_len = SharedBase::MetaSize() + SharedBase::HeaderSize();
 };
 
 const size_t count = 100;
@@ -50,6 +50,42 @@ void make_mapdata() {
         nmap_data[i].assign(vec.begin(), vec.end());
     }
     return;
+}
+
+TEST_F(SharedMapTest, test_type_traits_assert) {
+    // error type, compile error is expected
+//    levin::SharedHashMap<int, uint64_t>::Dump("", map_kv64);
+//    levin::SharedHashMap<uint64_t, int64_t>::Dump("", map_kv64);
+//    std::unordered_map<uint64_t, uint64_t> hashmap_kv64;
+//    levin::SharedHashMap<int, uint64_t>::Dump("", hashmap_kv64);
+//    levin::SharedHashMap<uint64_t, int64_t>::Dump("", hashmap_kv64);
+}
+
+TEST_F(SharedMapTest, test_static_Dump_Load_empty) {
+    std::string name = "./hashmap_empty.dat";
+    // dump
+    {
+        std::unordered_map<int, int> in;
+        bool succ = levin::SharedHashMap<int, int>::Dump(name, in);
+        EXPECT_TRUE(succ);
+    }
+    // load
+    {
+        levin::SharedHashMap<int, int> smap(name);
+        bool succ = (smap.Init() == SC_RET_OK && (smap.IsExist() || smap.Load() == SC_RET_OK));
+        ASSERT_TRUE(succ);
+        LEVIN_CDEBUG_LOG("%s", smap.layout().c_str());
+        EXPECT_TRUE(smap.empty());
+        EXPECT_EQ(smap.size(), 0);
+        EXPECT_TRUE(smap.find(1) == smap.end());
+        for (auto it = smap.begin(); it != smap.end(); ++it) {
+            std::cout << it->first << "," << it->second << std::endl;
+        }
+        for (const auto &kv : smap) {
+            std::cout << kv.first << "," << kv.second << std::endl;
+        }
+        smap.Destroy();
+    }
 }
 
 // 文件dump uint64_t
@@ -211,8 +247,45 @@ protected:
     }
     virtual void TearDown() {
     }
-    const size_t fixed_len = SharedAllocator::Allocsize(sizeof(SharedMeta));
+    const size_t fixed_len = SharedBase::MetaSize() + SharedBase::HeaderSize();
 };
+
+TEST_F(SharedNestedHashMapTest, test_type_traits_assert) {
+    // error type, compile error is expected
+//    std::map<uint32_t, std::vector<Cat> > nmap_cat;
+//    levin::SharedNestedHashMap<int32_t, Cat>::Dump("", nmap_cat);
+//    levin::SharedNestedHashMap<uint32_t, uint64_t>::Dump("", nmap_cat);
+//    std::unordered_map<uint64_t, std::vector<Cat> > nhashmap_cat;
+//    levin::SharedNestedHashMap<int, Cat>::Dump("", nhashmap_cat);
+//    levin::SharedNestedHashMap<uint64_t, int64_t>::Dump("", nhashmap_cat);
+}
+
+TEST_F(SharedNestedHashMapTest, test_static_Dump_Load_empty) {
+    std::string name = "./snhashmap_empty.dat";
+    // dump
+    {
+        std::unordered_map<int, std::vector<int> > in;
+        bool succ = levin::SharedNestedHashMap<int, int>::Dump(name, in);
+        EXPECT_TRUE(succ);
+    }
+    // load
+    {
+        levin::SharedNestedHashMap<int, int> snmap(name);
+        bool succ = (snmap.Init() == SC_RET_OK && (snmap.IsExist() || snmap.Load() == SC_RET_OK));
+        ASSERT_TRUE(succ);
+        LEVIN_CDEBUG_LOG("%s", snmap.layout().c_str());
+        EXPECT_TRUE(snmap.empty());
+        EXPECT_EQ(snmap.size(), 0);
+        EXPECT_TRUE(snmap.find(1) == snmap.end());
+        for (auto it = snmap.begin(); it != snmap.end(); ++it) {
+            std::cout << it->first << "," << it->second->size() << std::endl;
+        }
+        for (const auto &kv : snmap) {
+            std::cout << kv.first << "," << kv.second->size() << std::endl;
+        }
+        snmap.Destroy();
+    }
+}
 
 TEST_F(SharedNestedHashMapTest, test_static_Dump) {
     std::string name = "./snhashmap.dat";

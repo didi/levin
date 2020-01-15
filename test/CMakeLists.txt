@@ -1,4 +1,4 @@
-set(CMAKE_CXX_FLAGS "-g -O2 -pipe -W -Wall -fPIC -std=c++0x -Dprivate=public -Dprotected=public")
+set(CMAKE_CXX_FLAGS "-g -O2 -pipe -W -Wall -fPIC -std=c++0x -fno-access-control")
 
 file(GLOB_RECURSE TEST_FILES "${PROJECT_DIR}/test/*.cpp")
 foreach (file_path ${TEST_FILES})

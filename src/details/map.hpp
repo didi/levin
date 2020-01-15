@@ -8,20 +8,24 @@
 namespace levin {
 
 // @brief customized map which MUST be inplacement new at allocated address
-template <class Key, class Value, class Compare = std::less<Key> >
+template <class Key,
+          class Value,
+          class Compare = std::less<Key>,
+          class SizeType = std::size_t>
 class Map {
 public:
     // @brief val: [ pair<key, value> ...]
-    typedef CustomVector<std::pair<Key, Value>, size_t> impl_type;
+    typedef CustomVector<std::pair<Key, Value>, SizeType> impl_type;
     typedef typename impl_type::value_type     value_type;
     typedef Key                                key_type;
-    typedef size_t                             size_type;
+    typedef Value                              mapped_type;
+    typedef typename impl_type::size_type      size_type;
     typedef typename impl_type::iterator       iterator;
     typedef typename impl_type::const_iterator const_iterator;
 
     // @breif construct&destruct
     Map() {}
-    ~Map() { /* do NOT delete[] */ }
+    //~Map() { /* do NOT delete[] */ }
 
     // @brief debugging
     std::string layout() const;
@@ -32,6 +36,8 @@ public:
     // @brief iterators
     iterator begin() { return _datas.begin(); }
     iterator end() { return _datas.end(); }
+    const_iterator begin() const { return _datas.cbegin(); }
+    const_iterator end() const { return _datas.cend(); }
     const_iterator cbegin() const { return _datas.cbegin(); }
     const_iterator cend() const { return _datas.cend(); }
 
@@ -70,21 +76,25 @@ public:
 
     const impl_type& datas() const { return _datas; }
 
-    void swap(Map<Key, Value, Compare> &other) { std::swap(_datas, other._datas); }
-    bool operator ==(const Map<Key, Value, Compare> &other) const { return _datas == other._datas; }
-    bool operator !=(const Map<Key, Value, Compare> &other) const { return !(*this == other); }
+    void swap(Map<Key, Value, Compare, SizeType> &other) { std::swap(_datas, other._datas); }
+    bool operator ==(const Map<Key, Value, Compare, SizeType> &other) const {
+        return _datas == other._datas;
+    }
+    bool operator !=(const Map<Key, Value, Compare, SizeType> &other) const {
+        return !(*this == other);
+    }
 private:
-    Map(const Map<Key, Value, Compare>&) = delete;
-    Map(Map<Key, Value, Compare>&&) = delete;
-    Map<Key, Value, Compare>& operator =(const Map<Key, Value, Compare>&) = delete;
-    Map<Key, Value, Compare>& operator =(Map<Key, Value, Compare>&&) = delete;
+    Map(const Map<Key, Value, Compare, SizeType>&) = delete;
+    Map(Map<Key, Value, Compare, SizeType>&&) = delete;
+    Map<Key, Value, Compare, SizeType>& operator =(const Map<Key, Value, Compare, SizeType>&) = delete;
+    Map<Key, Value, Compare, SizeType>& operator =(Map<Key, Value, Compare, SizeType>&&) = delete;
 
 private:
     impl_type _datas;
 };
 
-template <class Key, class Value, class Compare>
-const Value& Map<Key, Value, Compare>::at(const Key& key) const {
+template <class Key, class Value, class Compare, class SizeType>
+const Value& Map<Key, Value, Compare, SizeType>::at(const Key& key) const {
     auto item = find(key);
     if (item == cend()) {
         throw std::out_of_range("accessed position out of range");
@@ -92,15 +102,15 @@ const Value& Map<Key, Value, Compare>::at(const Key& key) const {
     return item->second;
 }
 
-template <class Key, class Value, class Compare>
-std::string Map<Key, Value, Compare>::layout() const {
+template <class Key, class Value, class Compare, class SizeType>
+std::string Map<Key, Value, Compare, SizeType>::layout() const {
     std::stringstream ss;
     ss << "Map this=[" << (void*)this << "]" << std::endl << _datas.layout();
     return ss.str();
 }
 
-template <class Key, class Value, class Compare>
-inline size_t container_memsize(const Map<Key, Value, Compare> *object) {
+template <class Key, class Value, class Compare, class SizeType>
+inline size_t container_memsize(const Map<Key, Value, Compare, SizeType> *object) {
     return (object->datas().empty() ? sizeof(*object) :
             (size_t)object->datas().cend() - (size_t)object);
 }

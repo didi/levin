@@ -1,10 +1,6 @@
 #ifndef  LEVIN_SHARED_MANAGER_H
 #define  LEVIN_SHARED_MANAGER_H
 
-#include "xsi_shm.hpp"
-#include "check_file.h"
-#include "shared_utils.h"
-#include "levin_logger.h"
 #include <string>
 #include <memory>
 #include <map>
@@ -15,7 +11,18 @@
 #include <boost/atomic.hpp>
 #include <boost/thread.hpp>
 #include <boost/thread/mutex.hpp>
+#include "shared_memory.hpp"
+#include "check_file.h"
+#include "shared_utils.h"
+#include "levin_logger.h"
 #include "shared_base.hpp"
+#include "svec.hpp"
+#include "sset.hpp"
+#include "smap.hpp"
+#include "shashset.hpp"
+#include "shashmap.hpp"
+#include "snested_hashmap.hpp"
+#include "levin_timer.hpp"
 
 namespace levin {
 
@@ -217,6 +224,136 @@ private:
     static boost::shared_mutex _wr_lock_container_init;
 };
 
+// note: not thread safe
+template<typename T>
+static int LoadContainer(const std::string &path,
+                         std::shared_ptr<T> &container_ptr,
+                         std::shared_ptr<levin::SharedContainerManager> shared_mem_manage_ptr) {
+    levin::TimerGuard tg(path, __func__);
+
+    // 文件已注册，直接返回成功
+    auto ret = levin::SharedContainerManager::GetContanerPtr(path, container_ptr);
+    if (SC_RET_OK == ret) {
+        LEVIN_CINFO_LOG("file has registered, path=%s, size=%lu", path.c_str(), container_ptr->size());
+        return 0;
+    }
+
+    // 文件未注册
+    if (SC_RET_NO_REGISTER == ret) {
+        ret = shared_mem_manage_ptr->Register(path, container_ptr);
+        if (SC_RET_OK != ret) {
+            LEVIN_CFATAL_LOG("load failed, path=%s, errmsg=%s, container_ptr=%p, shared_mem_manage_ptr=%p",
+                    path.c_str(), levin::CodeToMsg(ret), container_ptr.get(), shared_mem_manage_ptr.get());
+            return -1;
+        }
+
+        LEVIN_CINFO_LOG("load success, path=%s, size=%lu", path.c_str(), container_ptr->size());
+        return 0;
+    }
+
+    // 其他状态错误
+    LEVIN_CFATAL_LOG("load failed, path=%s, errmsg=%s, container_ptr=%p, shared_mem_manage_ptr=%p",
+            path.c_str(), levin::CodeToMsg(ret), container_ptr.get(), shared_mem_manage_ptr.get());
+    return -1;
+}
+
+template<typename T>
+static int DumpSharedVector(const std::string path, const std::vector<T> &vec) {
+    levin::TimerGuard tg(path, __func__);
+    const auto &ret = levin::SharedVector<T>::Dump(path, vec);
+
+    if (true != ret) {
+        LEVIN_CFATAL_LOG("dump failed, path=%s, size=%zu", path.c_str(), vec.size());
+        return -1;
+    }
+
+    LEVIN_CINFO_LOG("dump success, path=%s, size=%zu", path.c_str(), vec.size());
+    return 0;
+}
+
+template<typename T>
+static int DumpSharedNestedVector(const std::string path, const std::vector<std::vector<T>> &nvec) {
+    levin::TimerGuard tg(path, __func__);
+    const auto &ret = levin::SharedNestedVector<T>::Dump(path, nvec);
+
+    if (true != ret) {
+        LEVIN_CFATAL_LOG("dump failed, path=%s, size=%zu", path.c_str(), nvec.size());
+        return -1;
+    }
+
+    LEVIN_CINFO_LOG("dump success, path=%s, size=%zu", path.c_str(), nvec.size());
+    return 0;
+}
+
+template<typename T>
+static int DumpSharedSet(const std::string path, const std::set<T> &set) {
+    levin::TimerGuard tg(path, __func__);
+    const auto &ret = levin::SharedSet<T>::Dump(path, set);
+
+    if (true != ret) {
+        LEVIN_CFATAL_LOG("dump failed, path=%s, size=%zu", path.c_str(), set.size());
+        return -1;
+    }
+
+    LEVIN_CINFO_LOG("dump success, path=%s, size=%zu", path.c_str(), set.size());
+    return 0;
+}
+
+template<typename T>
+static int DumpSharedHashSet(const std::string path, const std::unordered_set<T> &set) {
+    levin::TimerGuard tg(path, __func__);
+    const auto &ret = levin::SharedHashSet<T>::Dump(path, set);
+
+    if (true != ret) {
+        LEVIN_CFATAL_LOG("dump failed, path=%s, size=%zu", path.c_str(), set.size());
+        return -1;
+    }
+
+    LEVIN_CINFO_LOG("dump success, path=%s, size=%zu", path.c_str(), set.size());
+    return 0;
+}
+
+template<typename K, typename V>
+static int DumpSharedMap(const std::string path, const std::map<K, V> &map) {
+    levin::TimerGuard tg(path, __func__);
+    const auto &ret = levin::SharedMap<K, V>::Dump(path, map);
+
+    if (true != ret) {
+        LEVIN_CFATAL_LOG("dump failed, path=%s, size=%zu", path.c_str(), map.size());
+        return -1;
+    }
+
+    LEVIN_CINFO_LOG("dump success, path=%s, size=%zu", path.c_str(), map.size());
+    return 0;
+}
+
+template<typename K, typename V>
+static int DumpSharedHashMap(const std::string path, const std::unordered_map<K, V> &map) {
+    levin::TimerGuard tg(path, __func__);
+    const auto &ret = levin::SharedHashMap<K, V>::Dump(path, map);
+
+    if (true != ret) {
+        LEVIN_CFATAL_LOG("dump failed, path=%s, size=%zu", path.c_str(), map.size());
+        return -1;
+    }
+
+    LEVIN_CINFO_LOG("dump success, path=%s, size=%zu", path.c_str(), map.size());
+    return 0;
+}
+
+template<typename K, typename V>
+static int DumpSharedNestedHashMap(const std::string path, const std::unordered_map<K, std::vector<V>> &nmap) {
+    levin::TimerGuard tg(path, __func__);
+    const auto &ret = levin::SharedNestedHashMap<K, V>::Dump(path, nmap);
+
+    if (true != ret) {
+        LEVIN_CFATAL_LOG("dump failed, path=%s, size=%zu", path.c_str(), nmap.size());
+        return -1;
+    }
+
+    LEVIN_CINFO_LOG("dump success, path=%s, size=%zu", path.c_str(), nmap.size());
+    return 0;
+}
 
 }  // namespace levin
 

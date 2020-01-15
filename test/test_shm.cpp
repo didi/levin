@@ -1,4 +1,4 @@
-#include "xsi_shm.hpp"
+#include "shared_memory.hpp"
 #include <vector>
 #include <map>
 #include <gtest/gtest.h>
@@ -48,7 +48,7 @@ TEST_F(ShmTest, test_remove) {
     SharedMemory shm(file, 1, memsize);
     uint32_t res = shm.init(fixed_len);
     EXPECT_EQ(res, SC_RET_OK);
-    EXPECT_TRUE(shm.remove_shared_memory());
+    EXPECT_TRUE(shm.remove());
 }
 // 删除指定id共享内存
 TEST_F(ShmTest, test_remove_shmid) {
@@ -69,7 +69,7 @@ TEST_F(ShmTest, test_existed_shm) {
     EXPECT_EQ(res, SC_RET_OK);
     EXPECT_FALSE(shm.is_exist());
     res = shm.init(fixed_len);
-    EXPECT_EQ(res, SC_RET_OK);
+    EXPECT_EQ(res, SC_RET_SHM_KEY_CONFLICT);
     EXPECT_TRUE(shm.is_exist());
     int shmid = shm.get_shmid();
     bool flag = SharedMemory::remove_shared_memory(shmid);

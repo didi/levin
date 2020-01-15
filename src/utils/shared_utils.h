@@ -1,8 +1,8 @@
 #ifndef LEVIN_SHARED_UTILS_H
 #define LEVIN_SHARED_UTILS_H
 
-#include <sstream>
 #include <cstring>
+#include <sstream>
 #include <cxxabi.h>
 #include <vector>
 #include <unordered_map>
@@ -30,27 +30,29 @@ enum {
     SC_RET_ERR_STATUS,          // 容器状态异常
     SC_RET_FILE_CHECK,          // 文件校验出错
     SC_RET_EXCEPTION,           // 有异常抛出
-    SC_RET_ERR_SYS              // 获取系统信息出错
+    SC_RET_ERR_SYS,             // 获取系统信息出错
+    SC_RET_SHM_KEY_CONFLICT     // 不同文件生成key冲突
 };
 
 inline const char* CodeToMsg(int code) {
     static const std::unordered_map<int, const char*> code_msg_pairs = {
-        {SC_RET_OK,             "OK"                                               },
-        {SC_RET_FILE_NOEXIST,   "File no exist"                                    },
-        {SC_RET_SHM_SIZE_ERR,   "Shm alloc size error, 0 or >60G been forbidden"   },
-        {SC_RET_OOM,            "Out of memory"                                    },
-        {SC_RET_READ_FAIL,      "File read error, fail or bad"                     },
-        {SC_RET_ALLOC_FAIL,     "Allocate in shm region fail, out of range"        },
-        {SC_RET_CHECK_FAIL,     "Exist shm check fail"                             },
-        {SC_RET_LOAD_FAIL,      "File load error, bad or validate fail"            },
-        {SC_RET_LOADING,        "Duplicate container is loading"                   },
-        {SC_RET_ERR_TYPE,       "Error container type"                             },
-        {SC_RET_NO_REGISTER,    "Unregistered container"                           },
-        {SC_RET_HAS_REGISTED,   "Duplicate container has registed by this manager" },
-        {SC_RET_ERR_STATUS,     "Container can't be used right now"                },
-        {SC_RET_FILE_CHECK,     "File MD5 check fail"                              },
-        {SC_RET_EXCEPTION,      "Container internal exception"                     },
-        {SC_RET_ERR_SYS,        "Xsi share memory system error"                    }
+        {SC_RET_OK,               "OK"                                               },
+        {SC_RET_FILE_NOEXIST,     "File no exist"                                    },
+        {SC_RET_SHM_SIZE_ERR,     "Shm alloc size error, 0 or >60G been forbidden"   },
+        {SC_RET_OOM,              "Out of memory"                                    },
+        {SC_RET_READ_FAIL,        "File read error, fail or bad"                     },
+        {SC_RET_ALLOC_FAIL,       "Allocate in shm region fail, out of range"        },
+        {SC_RET_CHECK_FAIL,       "Exist shm check fail"                             },
+        {SC_RET_LOAD_FAIL,        "File load error, bad or validate fail"            },
+        {SC_RET_LOADING,          "Duplicate container is loading"                   },
+        {SC_RET_ERR_TYPE,         "Error container type"                             },
+        {SC_RET_NO_REGISTER,      "Unregistered container"                           },
+        {SC_RET_HAS_REGISTED,     "Duplicate container has registed by this manager" },
+        {SC_RET_ERR_STATUS,       "Container can't be used right now"                },
+        {SC_RET_FILE_CHECK,       "File MD5 check fail"                              },
+        {SC_RET_EXCEPTION,        "Container internal exception"                     },
+        {SC_RET_ERR_SYS,          "Xsi share memory system error"                    },
+        {SC_RET_SHM_KEY_CONFLICT, "Different files generate conflict shm key"        }
     };
     auto ret = code_msg_pairs.find(code);
     if (ret != code_msg_pairs.end()) {
@@ -267,6 +269,16 @@ typedef struct Header {
     uint64_t flags;
     // other file header field...
 } SharedFileHeader;
+
+inline std::ostream& operator<<(std::ostream &os, const SharedFileHeader &header) {
+    std::stringstream ss;
+    ss << "[" << (void*)&header.container_size
+       << "]\t\theader.container_size=" << header.container_size << std::endl
+       << "[" << (void*)&header.type_hash
+       << "]\t\theader.type_hash=" << header.type_hash << std::endl
+       << "[" << (void*)&header.flags << "]\t\theader.flags=" << header.flags;
+    return os << ss.str();
+}
 
 inline uint8_t VersionOfFlags(const uint64_t flags) {
     return (uint8_t)(flags >> 56);

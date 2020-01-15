@@ -25,8 +25,9 @@ Getting Started
 | map\<K, V, Compare\>              | SharedMap\<K, V, Compare\>     | K/V is POD type | use SharedHashMap if no comparison    |
 | unordered_set\<K, Hash, Pred\>    | SharedHashSet\<K, Hash, Pred\> | K is POD type   |                                       |
 | unordered_map\<K, V, Hash, Pred\> | SharedHashMap\<K, V, Hash\>    | K/V is POD type |                                       |
-| vector\<vector\<T\> \>            | SharedNestedVector\<T, SizeType\> | T is POD type; SizeType is unsigned integral type | need customized impl for combination; specified SizeType for memory space efficiency |
-| unordered_map\<K, vector\<V\> \>  | SharedNestedHashMap\<K, V\>    | K/V is POD type | need customized impl for combination  |
+| vector\<vector\<T\> \>            | SharedNestedVector\<T, SizeType\> | T is POD type; SizeType is unsigned integral type | specified SizeType for memory space efficiency |
+| unordered_map\<K, vector\<V\> \>  | SharedNestedHashMap\<K, V\>    | K/V is POD type |                                       |
+| vector\<map\<K, V, Compare\> \>   | SharedNestedMap\<K, V, Compare, SizeType\> | K/V is POD type; SizeType is unsigned integral type |   |
 
 
 * How to Dump Container
@@ -51,7 +52,7 @@ Tips: Levin container SHOULD be used as static data, NOT suggest to modify or re
 
 ```c++
 // shared vector use demo
-levin::SharedVector<int, levin::Md5Checker> vec("./vec_demo.dat");
+levin::SharedVector<int> vec("./vec_demo.dat");
 if (vec.Init() == levin::SC_RET_OK && vec.Load() == levin::SC_RET_OK) {
     ...
 }

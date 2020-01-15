@@ -74,6 +74,14 @@ public:
         }
         return false;
     }
+    bool OutOfRange(void *upper_addr) const {
+        size_t upper_bound = (size_t)_base_addr + _capacity;
+        if ((size_t)upper_addr != upper_bound) {
+            LEVIN_CWARNING_LOG("%p out of upper bound %p", upper_addr, (void*)upper_bound);
+            return true;
+        }
+        return false;
+    }
 
     static size_t Allocsize(size_t size) {
         static const size_t ALIGN_BYTES = 8;

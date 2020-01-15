@@ -92,28 +92,31 @@ int main() {
     }
 
     // register shared containers to group(involves loading data, checking file correction, recording info)
-    std::shared_ptr<SharedVector<int> > vec_ptr;
-    std::shared_ptr<SharedMap<int, int> > map_ptr;
-    ret = manager_ptr->Register(VEC_DATA_PATH, vec_ptr);
-    CHECK_RET(ret);
-    ret = manager_ptr->Register(MAP_DATA_PATH, map_ptr);
-    CHECK_RET(ret);
+    {
+        std::shared_ptr<SharedVector<int> > vec_ptr;
+        std::shared_ptr<SharedMap<int, int> > map_ptr;
+        ret = manager_ptr->Register(VEC_DATA_PATH, vec_ptr);
+        CHECK_RET(ret);
+        ret = manager_ptr->Register(MAP_DATA_PATH, map_ptr);
+        CHECK_RET(ret);
 
-    // get a shared contaner's pointer
-    std::shared_ptr<SharedVector<int> > other_vec_ptr = NULL;
-    ret = SharedContainerManager::GetContanerPtr(VEC_DATA_PATH, other_vec_ptr);
-    CHECK_RET(ret);
- 
-    // use shared container
-    vec_ptr->size();
-    other_vec_ptr->begin();
-    map_ptr->find(0);
-    // ...
+        // get a shared contaner's pointer
+        std::shared_ptr<SharedVector<int> > other_vec_ptr = NULL;
+        ret = SharedContainerManager::GetContanerPtr(VEC_DATA_PATH, other_vec_ptr);
+        CHECK_RET(ret);
+
+        // use shared container
+        vec_ptr->size();
+        other_vec_ptr->begin();
+        map_ptr->find(0);
+        // ...
+    }
 
     // (optional) release all shared containers in certain group when these shared containers are not needed anymore.
     // Attention: shared containers won't be destroyed immediately. levin scans and destroys containers once per second,
     //            and container won't be destroyed if it still being used
     manager_ptr->Release();
+    sleep(1);
  
     return 0;
 }

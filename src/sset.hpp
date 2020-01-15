@@ -8,12 +8,15 @@
 
 namespace levin {
 
-template <class Key, class Compare = std::less<Key>, class CheckFunc = levin::IntegrityChecker>
+template <class Key,
+          class Compare = std::less<Key>,
+          class Mem = levin::SharedMemory,
+          class CheckFunc = levin::IntegrityChecker>
 class SharedSet : public SharedBase {
 public:
-    typedef CustomSet<Key, Compare>             container_type;
-    typedef typename container_type::impl_type  impl_type;
-    typedef typename container_type::value_type value_type;
+    typedef CustomSet<Key, Compare, std::size_t> container_type;
+    typedef typename container_type::impl_type   impl_type;
+    typedef typename container_type::value_type  value_type;
 
     SharedSet() : SharedBase(), _object(nullptr) {
     }
@@ -23,14 +26,14 @@ public:
     }
 
     virtual int Init() override {
-        return _init<container_type>(_object);
+        return _init<container_type, Mem>(_object);
     }
 
     virtual int Load() override {
         return _load<container_type>(_object);
     }
 
-    virtual bool Dump(const std::string &file) override;
+    virtual bool Export(const std::string &file) override;
     static bool Dump(const std::string &file, const std::set<Key, Compare> &st);
 
     bool empty() const { return _object->empty(); }
@@ -54,24 +57,27 @@ protected:
     container_type *_object = nullptr;
 };
 
-template <class Key, class Compare, class CheckFunc>
-bool SharedSet<Key, Compare, CheckFunc>::Dump(const std::string &file) {
+template <class Key, class Compare, class Mem, class CheckFunc>
+bool SharedSet<Key, Compare, Mem, CheckFunc>::Export(const std::string &file) {
     return this->_bin2file(file, container_memsize(_object), _object);
 }
 
-template <class Key, class Compare, class CheckFunc>
-bool SharedSet<Key, Compare, CheckFunc>::Dump(
+template <class Key, class Compare, class Mem, class CheckFunc>
+bool SharedSet<Key, Compare, Mem, CheckFunc>::Dump(
         const std::string &file, const std::set<Key, Compare> &st) {
     std::vector<value_type> vec(st.cbegin(), st.cend());
     return SharedVector<value_type>::Dump(file, vec, typeid(container_type).hash_code());
 }
 
-template <class Key, class Compare, class CheckFunc>
-std::string SharedSet<Key, Compare, CheckFunc>::layout() const {
+template <class Key, class Compare, class Mem, class CheckFunc>
+std::string SharedSet<Key, Compare, Mem, CheckFunc>::layout() const {
     std::stringstream ss;
     ss << "SharedSet this=[" << (void*)this << "]";
     if (_info->_meta != nullptr) {
         ss << std::endl << *_info->_meta;
+    }
+    if (_info->_header != nullptr) {
+        ss << std::endl << *_info->_header;
     }
     if (_object != nullptr) {
         ss << std::endl << _object->layout();

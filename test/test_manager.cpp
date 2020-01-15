@@ -3,7 +3,7 @@
 #include "smap.hpp"
 #include "svec.hpp"
 #include "sset.hpp"
-#include "xsi_shm.hpp"
+#include "shared_memory.hpp"
 #include <gtest/gtest.h>
 #include <memory>
 #include <time.h>

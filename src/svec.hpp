@@ -7,7 +7,9 @@
 
 namespace levin {
 
-template <class T, class CheckFunc = levin::IntegrityChecker>
+template <class T,
+          class Mem = levin::SharedMemory,
+          class CheckFunc = levin::IntegrityChecker>
 class SharedVector : public SharedBase {
 public:
     typedef CustomVector<T, std::size_t>        container_type;
@@ -25,7 +27,7 @@ public:
     }
 
     virtual int Init() override {
-        int ret = _init<container_type>(_object);
+        int ret = _init<container_type, Mem>(_object);
         if (ret == SC_RET_OK) {
             _size = _object->size();
             _array = _object->_array();
@@ -44,7 +46,7 @@ public:
         return ret;
     }
 
-    virtual bool Dump(const std::string &file) override;
+    virtual bool Export(const std::string &file) override;
     static bool Dump(const std::string &file, const std::vector<T> &vec, uint64_t type = 0);
     // for combination container
     static bool dump(const std::string &file, const std::vector<T> &vec, std::ofstream &fout);
@@ -90,8 +92,11 @@ protected:
 // template parameter SizeType customize column size type per row
 // in case of nested vector has tiny vector row, SizeType specialized to uint32_t for space eficiency
 // SizeType should be unsigned integral types and should specialize numeric_limits
-template <class T, class SizeType = uint32_t, class CheckFunc = levin::IntegrityChecker>
-class SharedNestedVector : public SharedVector<CustomVector<T, SizeType>, CheckFunc> {
+template <class T,
+          class SizeType = uint32_t,
+          class Mem = levin::SharedMemory,
+          class CheckFunc = levin::IntegrityChecker>
+class SharedNestedVector : public SharedVector<CustomVector<T, SizeType>, Mem, CheckFunc> {
 public:
     typedef CustomVector<CustomVector<T, SizeType>, std::size_t> container_type;
     typedef typename container_type::value_type row_value_type;
@@ -100,24 +105,25 @@ public:
     typedef typename row_value_type::size_type  col_size_type;
 
     SharedNestedVector(const std::string &name, const std::string group = "default", const int id = 1) :
-            SharedVector<CustomVector<T, SizeType>, CheckFunc>(name, group, id) {
+            SharedVector<CustomVector<T, SizeType>, Mem, CheckFunc>(name, group, id) {
     }
 
-    virtual bool Dump(const std::string &file) override;
-    static bool Dump(const std::string &file, const std::vector<std::vector<T> > &vec);
+    virtual bool Export(const std::string &file) override;
+    static bool Dump(
+            const std::string &file, const std::vector<std::vector<T> > &vec, uint64_t type = 0);
     // for combination container eg. hashmap
     static bool dump(
             const std::string &file, const std::vector<std::vector<T> > &vec, std::ofstream &fout);
     std::string layout() const;
 };
 
-template <class T, class CheckFunc>
-bool SharedVector<T, CheckFunc>::Dump(const std::string &file) {
+template <class T, class Mem, class CheckFunc>
+bool SharedVector<T, Mem, CheckFunc>::Export(const std::string &file) {
     return this->_bin2file(file, container_memsize(_object), _object);
 }
 
-template <class T, class CheckFunc>
-bool SharedVector<T, CheckFunc>::Dump(
+template <class T, class Mem, class CheckFunc>
+bool SharedVector<T, Mem, CheckFunc>::Dump(
         const std::string &file, const std::vector<T> &vec, uint64_t type) {
     std::ofstream fout(file, std::ios::out | std::ios::binary);
     if (!fout.is_open()) {
@@ -137,8 +143,8 @@ bool SharedVector<T, CheckFunc>::Dump(
     return SharedVector<value_type>::dump(file, vec, fout);
 }
 
-template <class T, class CheckFunc>
-bool SharedVector<T, CheckFunc>::dump(
+template <class T, class Mem, class CheckFunc>
+bool SharedVector<T, Mem, CheckFunc>::dump(
         const std::string &file, const std::vector<T> &vec, std::ofstream &fout) {
     static const size_t size_limit = std::numeric_limits<size_type>::max();
     static const size_t fix_offset = sizeof(container_type);
@@ -166,12 +172,15 @@ bool SharedVector<T, CheckFunc>::dump(
     return true;
 }
 
-template <class T, class CheckFunc>
-std::string SharedVector<T, CheckFunc>::layout() const {
+template <class T, class Mem, class CheckFunc>
+std::string SharedVector<T, Mem, CheckFunc>::layout() const {
     std::stringstream ss;
     ss << "SharedVector this=[" << (void*)this << "]";
     if (_info->_meta != nullptr) {
         ss << std::endl << *_info->_meta;
+    }
+    if (_info->_header != nullptr) {
+        ss << std::endl << *_info->_header;
     }
     if (_object != nullptr) {
         ss << std::endl << _object->layout();
@@ -179,14 +188,14 @@ std::string SharedVector<T, CheckFunc>::layout() const {
     return ss.str();
 }
 
-template <class T, class SizeType, class CheckFunc>
-bool SharedNestedVector<T, SizeType, CheckFunc>::Dump(const std::string &file) {
+template <class T, class SizeType, class Mem, class CheckFunc>
+bool SharedNestedVector<T, SizeType, Mem, CheckFunc>::Export(const std::string &file) {
     return this->_bin2file(file, container_memsize(this->_object), this->_object);
 }
 
-template <class T, class SizeType, class CheckFunc>
-bool SharedNestedVector<T, SizeType, CheckFunc>::Dump(
-        const std::string &file, const std::vector<std::vector<T> > &vec) {
+template <class T, class SizeType, class Mem, class CheckFunc>
+bool SharedNestedVector<T, SizeType, Mem, CheckFunc>::Dump(
+        const std::string &file, const std::vector<std::vector<T> > &vec, uint64_t type) {
     std::ofstream fout(file, std::ios::out | std::ios::binary);
     if (!fout.is_open()) {
         LEVIN_CWARNING_LOG("open file for write fail. file=%s", file.c_str());
@@ -198,7 +207,7 @@ bool SharedNestedVector<T, SizeType, CheckFunc>::Dump(
         container_size += sizeof(row_value_type);
         container_size += row.size() * sizeof(col_value_type);
     }
-    size_t type_hash = typeid(container_type).hash_code();
+    size_t type_hash = (type == 0 ? typeid(container_type).hash_code() : type);
     SharedFileHeader header = {container_size, type_hash, makeFlags(SharedBase::SC_VERSION)};
     fout.write((const char*)&header, sizeof(header));
     if (!fout) {
@@ -208,8 +217,8 @@ bool SharedNestedVector<T, SizeType, CheckFunc>::Dump(
     return SharedNestedVector<col_value_type, SizeType>::dump(file, vec, fout);
 }
 
-template <class T, class SizeType, class CheckFunc>
-bool SharedNestedVector<T, SizeType, CheckFunc>::dump(
+template <class T, class SizeType, class Mem, class CheckFunc>
+bool SharedNestedVector<T, SizeType, Mem, CheckFunc>::dump(
         const std::string &file, const std::vector<std::vector<T> > &vec, std::ofstream &fout) {
     static const size_t row_size_limit = std::numeric_limits<row_size_type>::max();
     static const size_t col_size_limit = std::numeric_limits<col_size_type>::max();
@@ -262,12 +271,15 @@ bool SharedNestedVector<T, SizeType, CheckFunc>::dump(
     return true;
 }
 
-template <class T, class SizeType, class CheckFunc>
-std::string SharedNestedVector<T, SizeType, CheckFunc>::layout() const {
+template <class T, class SizeType, class Mem, class CheckFunc>
+std::string SharedNestedVector<T, SizeType, Mem, CheckFunc>::layout() const {
     std::stringstream ss;
     ss << "SharedNestedVector this=[" << (void*)this << "]";
     if (this->_info->_meta != nullptr) {
         ss << std::endl << *this->_info->_meta;
+    }
+    if (this->_info->_header != nullptr) {
+        ss << std::endl << *this->_info->_header;
     }
     if (this->_object != nullptr) {
         ss << std::endl << container_layout(this->_object);

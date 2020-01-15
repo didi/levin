@@ -1,8 +1,8 @@
 cmake_minimum_required (VERSION 2.6)
 project (levin)
 
-file(GLOB LEVIN_LIB_SOURCES "src/*.cpp")
-file(GLOB LEVIN_LIB_HEADERS "src/*.h" "src/*.hpp")
+file(GLOB LEVIN_LIB_SOURCES "src/*.cpp" "src/details/*.cpp" "src/utils/*.cpp")
+file(GLOB LEVIN_LIB_HEADERS "src/*.h" "src/*.hpp" "src/utils/*.h" "src/utils/*.hpp")
 file(GLOB LEVIN_LIB_HEADERS_DETAILS "src/details/*.h" "src/details/*.hpp")
 
 set(ROOT ${CMAKE_CURRENT_SOURCE_DIR})
@@ -29,7 +29,10 @@ set(OPENSSL_MODULE ${THIRD_PARTY}/openssl)
 set(OPENSSL_MODULE_INCLUDE ${OPENSSL_MODULE}/include)
 file(GLOB_RECURSE OPENSSL_MODULE_LIB "${OPENSSL_MODULE}/lib/*.a")
 
-include_directories(src/
+include_directories(
+    src/
+    src/details/
+    src/utils/
     ${BOOST_MODULE_INCLUDE}
     ${GTEST_MODULE_INCLUDE}
     ${OPENSSL_MODULE_INCLUDE})

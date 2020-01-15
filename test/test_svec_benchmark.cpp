@@ -61,6 +61,7 @@ void test_shared_vector(const std::vector<size_t> &access_idxs) {
         }
     }
     std::cout << "SharedVector traversal time:" << ttimer.get_time_us() << std::endl;
+    LEVIN_CDEBUG_LOG("%s", vec.layout().c_str());
 
     MemDiffer differ;
     vec.Destroy();
@@ -222,6 +223,7 @@ void test_shared_nested_vector(const std::vector<std::pair<size_t, size_t> > &ac
         }
     }
     std::cout << "SharedNestedVector traversal time:" << ttimer.get_time_us() << std::endl;
+    LEVIN_CDEBUG_LOG("%s", vec.layout().c_str());
 
     MemDiffer differ;
     vec.Destroy();

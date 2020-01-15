@@ -11,6 +11,7 @@ namespace levin {
 template <class Key,
           class Hash = std::hash<Key>,
           class Pred = std::equal_to<Key>,
+          class Mem = levin::SharedMemory,
           class CheckFunc = levin::IntegrityChecker>
 class SharedHashSet : public SharedBase {
 public:
@@ -29,18 +30,17 @@ public:
     }
 
     virtual int Init() override {
-        return _init<container_type>(_object);
+        return _init<container_type, Mem>(_object);
     }
 
     virtual int Load() override {
         return _load<container_type>(_object);
     }
 
-    virtual bool Dump(const std::string &file) override;
-    template <class Alloc>
+    virtual bool Export(const std::string &file) override;
     static bool Dump(
             const std::string &file,
-            const std::unordered_set<Key, Hash, Pred, Alloc> &hashset);
+            const std::unordered_set<Key, Hash, Pred> &hashset);
 
     bool empty() const { return _object->empty(); }
     size_t size() const { return _object->size(); }
@@ -61,16 +61,15 @@ protected:
     container_type *_object = nullptr;
 };
 
-template <class Key, class Hash, class Pred, class CheckFunc>
-bool SharedHashSet<Key, Hash, Pred, CheckFunc>::Dump(const std::string &file) {
+template <class Key, class Hash, class Pred, class Mem, class CheckFunc>
+bool SharedHashSet<Key, Hash, Pred, Mem, CheckFunc>::Export(const std::string &file) {
     return this->_bin2file(file, container_memsize(_object), _object);
 }
 
-template <class Key, class Hash, class Pred, class CheckFunc>
-template <class Alloc>
-bool SharedHashSet<Key, Hash, Pred, CheckFunc>::Dump(
+template <class Key, class Hash, class Pred, class Mem, class CheckFunc>
+bool SharedHashSet<Key, Hash, Pred, Mem, CheckFunc>::Dump(
         const std::string &file,
-        const std::unordered_set<Key, Hash, Pred, Alloc> &hashset) {
+        const std::unordered_set<Key, Hash, Pred> &hashset) {
     size_t bucket_count = hashset.bucket_count();
     LEVIN_CDEBUG_LOG("Dump(). file=%s, hashset size=%ld, bcount=%ld, bucket count=%ld",
             file.c_str(), hashset.size(), hashset.bucket_count(), bucket_count);
@@ -102,12 +101,15 @@ bool SharedHashSet<Key, Hash, Pred, CheckFunc>::Dump(
     return SharedNestedVector<value_type, value_size_type>::dump(file, datas, fout);
 }
 
-template <class Key, class Hash, class Pred, class CheckFunc>
-std::string SharedHashSet<Key, Hash, Pred, CheckFunc>::layout() const {
+template <class Key, class Hash, class Pred, class Mem, class CheckFunc>
+std::string SharedHashSet<Key, Hash, Pred, Mem, CheckFunc>::layout() const {
     std::stringstream ss;
     ss << "SharedHashSet this=[" << (void*)this << "]";
     if (_info->_meta != nullptr) {
         ss << std::endl << *_info->_meta;
+    }
+    if (_info->_header != nullptr) {
+        ss << std::endl << *_info->_header;
     }
     if (_object != nullptr) {
         ss << std::endl << _object->layout();

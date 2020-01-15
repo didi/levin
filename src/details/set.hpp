@@ -9,14 +9,14 @@
 namespace levin {
 
 // @brief customized set which MUST be inplacement new at allocated address
-template <class Key, class Compare = std::less<Key> >
+template <class Key, class Compare = std::less<Key>, class SizeType = std::size_t>
 class CustomSet {
 public:
     // @brief typedefs
-    typedef CustomVector<Key, size_t>          impl_type;
+    typedef CustomVector<Key, SizeType>        impl_type;
     typedef typename impl_type::value_type     value_type;
     typedef Key                                key_type;
-    typedef size_t                             size_type;
+    typedef typename impl_type::size_type      size_type;
     typedef typename impl_type::iterator       iterator;
     typedef typename impl_type::const_iterator const_iterator;
 
@@ -64,23 +64,27 @@ public:
     }
 
     // @brief Modifiers
-    void swap(CustomSet<Key, Compare> &other) { std::swap(_data, other._data); }
+    void swap(CustomSet<Key, Compare, SizeType> &other) { std::swap(_data, other._data); }
 
-    bool operator ==(const CustomSet<Key, Compare> &other) const { return _data == other._data; }
-    bool operator !=(const CustomSet<Key, Compare> &other) const { return !(*this == other); }
+    bool operator ==(const CustomSet<Key, Compare, SizeType> &other) const {
+        return _data == other._data;
+    }
+    bool operator !=(const CustomSet<Key, Compare, SizeType> &other) const {
+        return !(*this == other);
+    }
 
 private:
-    CustomSet(const CustomSet<Key, Compare>&) = delete;
-    CustomSet(CustomSet<Key, Compare>&&) = delete;
-    CustomSet<Key, Compare>& operator =(const CustomSet<Key, Compare>&) = delete;
-    CustomSet<Key, Compare>& operator =(CustomSet<Key, Compare>&&) = delete;
+    CustomSet(const CustomSet<Key, Compare, SizeType>&) = delete;
+    CustomSet(CustomSet<Key, Compare, SizeType>&&) = delete;
+    CustomSet<Key, Compare, SizeType>& operator=(const CustomSet<Key, Compare, SizeType>&) = delete;
+    CustomSet<Key, Compare, SizeType>& operator=(CustomSet<Key, Compare, SizeType>&&) = delete;
 
 private:
     impl_type _data;
 };
 
-template <class Key, class Compare>
-inline size_t container_memsize(const CustomSet<Key, Compare> *object) {
+template <class Key, class Compare, class SizeType>
+inline size_t container_memsize(const CustomSet<Key, Compare, SizeType> *object) {
     return container_memsize(&object->data());
 }
 

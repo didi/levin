@@ -3,7 +3,7 @@
 
 #include <sys/types.h>
 #include <gtest/gtest.h>
-#include "xsi_shm.hpp"
+#include "shared_memory.hpp"
 #include "levin_logger.h"
 
 namespace levin {
