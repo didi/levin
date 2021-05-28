@@ -5,12 +5,12 @@ Levin - A Quick Way to Bulk Loading
 Description
 -------
 
-Levin provide a highly efficient solution in bulk loading scene.
-A collection of STL-like containers implemented with high performance and memory efficiency.
-Levin containers arrange memory layout SEQUENTIALLY, allocated at share memory region for reused inter-process.
-which prolongs the lifetime of data resources, and prevents unnecessary time-consuming reload.
+Levin provides a highly efficient solution in bulk loading scenario.
+A collection of STL-like containers are implemented with high performance and memory efficiency.
+Levin containers arrange memory layout SEQUENTIALLY, allocated at share memory region for inter-process reuse.
+In which case, we can extend the lifetime of data resources, and prevent unnecessary time-consuming reload.
 
-Loading with levin speed, let's get started.
+Loading with levin is fast, let's get started.
 
 
 Getting Started
@@ -30,7 +30,7 @@ Getting Started
 | vector\<map\<K, V, Compare\> \>   | SharedNestedMap\<K, V, Compare, SizeType\> | K/V is POD type; SizeType is unsigned integral type |   |
 
 
-* How to Dump Container
+* How to Dump Container Data to A File
 
 ```c++
 // vector dump demo
@@ -48,7 +48,7 @@ levin::SharedHashMap<int64_t, int32_t>::Dump("./map_demo.dat", map_data);
 
 * How to Use Container
 
-Tips: Levin container SHOULD be used as static data, NOT suggest to modify or reallocate.
+Tips: Levin container SHOULD be immutable, NOT suggest to modify or reallocate.
 
 ```c++
 // shared vector use demo
@@ -78,7 +78,7 @@ delete map_ptr;
 Dependencies
 -------
 
-Levin depends on following packages, supported deps:
+Levin depends on following packages, required deps:
 
 * gcc >= 4.8.5
 * cmake >= 2.6.0
